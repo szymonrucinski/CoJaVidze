@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+</head>
+
+<body>
+    <script>
+        d3.json('https://api.covid19api.com/summary').then(function (json) {
+            return json.Countries.map(function (element) {
+                return {
+                    country: element.Country,
+                    cases: element.TotalConfirmed
+                };
+            })
+        }).then(function (data) {
+            data.sort(function (a, b) {
+                return b.cases - a.cases
+            });
+            data = data.slice(0, 5);
+
+            margin = ({
+                top: 20,
+                right: 30,
+                bottom: 30,
+                left: 60
+            })
+
+            let width = 800;
+            let height = width / 2;
+
+            let svg = d3.select("body")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+
+            x = d3.scaleBand()
+                .domain(data.map(function (d) {
+                    return d.country;
+                }))
+                .range([margin.left, width - margin.right])
+                .padding(0.1)
+
+            y = d3.scaleLinear()
+                .domain([0, d3.max(data, function (d) {
+                    return d.cases
+                })]).nice()
+                .range([height - margin.bottom, margin.top])
+
+            svg.selectAll(".bar")
+                .data(data)
+                .join(
+                    (enter) => enter.append("rect")
+                    .attr("y", function (d) {
+                        return height - margin.bottom
+                    })
+                    .attr("height", 0)
+                    .call((enter) => enter.transition()
+                        .duration(1000)
+                        .attr("y", function (d) {
+                            return y(d.cases)
+                        })
+                        .attr("height", function (d) {
+                            return height - y(d.cases) - margin.bottom
+                        })),
+                    (update) => update,
+                )
+                .attr("class", 'bar')
+                .attr("fill", "red")
+                .attr("x", function (d) {
+                    return x(d.country)
+                })
+                .attr("width", x.bandwidth());
+
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+
+            svg.append("g")
+                .attr("transform", `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(x));
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", 0 + margin.top)
+                .style("text-anchor", "middle")
+                .text("Top countries 🌍 - number of total cases")
+                .attr("font-size", 24)
+        });
+    </script>
+    <script>
+        d3.json('https://api.covid19api.com/country/austria/status/confirmed').then(function (json) {
+            return json.map(function (element) {
+                return {
+                    date: d3.timeParse("%Y-%m-%d")(element.Date.slice(0, 10)),
+                    cases: element.Cases
+                };
+            })
+        }).then(function (data) {
+
+            margin = ({
+                top: 20,
+                right: 30,
+                bottom: 30,
+                left: 40
+            })
+
+            let width = 600;
+            let height = 400;
+
+            let svg = d3.select("body")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+
+            let x = d3.scaleTime()
+                .domain(d3.extent(data, function (d) {
+                    return d.date;
+                }))
+                .range([margin.left, width - margin.right]);
+            svg.append("g")
+                .attr("transform", `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(x));
+
+            let y = d3.scaleLinear()
+                .domain([0, d3.max(data, function (d) {
+                    return d.cases;
+                })])
+                .range([height - margin.bottom, margin.top]);
+
+            svg.append("g")
+                .attr("transform", `translate(${margin.left},0)`)
+                .call(d3.axisLeft(y));
+
+            svg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "red")
+                .attr("d", d3.line()
+                    .x(function (d) {
+                        return x(d.date)
+                    })
+                    .y(function (d) {
+                        return y(d.cases)
+                    })
+                )
+
+            svg.append("text")
+                .attr("x", width / 2)
+                .attr("y", 0 + margin.top)
+                .style("text-anchor", "middle")
+                .text("Austria 🇦🇹 - active cases")
+                .attr("font-size", 24)
+        });
+    </script>
+</body>
+
+</html>
